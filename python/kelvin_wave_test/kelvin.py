@@ -127,10 +127,10 @@ if domain.distributor.rank == 0:
 snapshots = IVP.evaluator.add_file_handler(os.path.join(data_dir,'snapshots'), sim_dt=1., max_writes=50)
 snapshots.add_system(IVP.state)
 
-timeseries = IVP.evaluator.add_file_handler(os.path.join(data_dir,'timeseries'),iter=100, max_writes=np.inf)
+timeseries = IVP.evaluator.add_file_handler(os.path.join(data_dir,'timeseries'),iter=10, max_writes=np.inf)
 timeseries.add_task("vol_avg(sqrt(u*u))",name='urms')
 timeseries.add_task("vol_avg(sqrt(v*v))",name='vrms')
-timeseries.add_task("vol_avg((v*v)/(u*u+v*v))",name='E_ky/E_ktot')
+timeseries.add_task("vol_avg((v*v)/(u*u+v*v))",name='E_ky_ratio')
 
 analysis_tasks = [snapshots, timeseries]
 
