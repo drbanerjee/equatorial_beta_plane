@@ -47,7 +47,8 @@ beta = 2.28e-11 #beta plane constant in 1/m*s
 cheb = args['--chebyshev']
 startup = args['--startup']
 restart = args['--restart']
-
+if restart=="None":
+    restart = None
 basename = sys.argv[0].split('.py')[0]
 
 data_dir = "scratch/" + basename
@@ -110,7 +111,7 @@ if cheb:
 # Build solver                                                                                                                               
 ts = de.timesteppers.RK443
 IVP = bp.build_solver(ts)
-if restart is None:
+if restart is "None":
     IVP.stop_sim_time = 864000
 else:
     IVP.stop_sim_time = 3*864000
