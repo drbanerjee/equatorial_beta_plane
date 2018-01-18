@@ -8,7 +8,7 @@ Can be run doubly periodic with sponge layer or Chebyshev in y with no
 sponge layer.
 
 Usage:
-    philander_experiment.py [--Lx=<Lx> --Ly=<Ly> --nx=<nx> --ny=<ny> --chebyshev --zeta=<zeta> --startup]
+    philander_experiment.py [--Lx=<Lx> --Ly=<Ly> --nx=<nx> --ny=<ny> --chebyshev --zeta=<zeta> --startup --restart=<restart_file>]
 
 Options:
     --Lx=<Lx>                                length in latitude in meters  [default: 10000000]
@@ -18,6 +18,7 @@ Options:
     --chebyshev                              Use chebyshev in y
     --zeta=<zeta>                            Control parameter for sponge layer [default: 0.9]
     --startup                                Run without dt(h) to get initial conditions
+    --restart=<restart_file>                 Restart from snapshot file [default: None]
 
 """
 import sys
@@ -45,7 +46,9 @@ Co = 1.4 #speed in meters per second
 beta = 2.28e-11 #beta plane constant in 1/m*s
 cheb = args['--chebyshev']
 startup = args['--startup']
-
+restart = args['--restart']
+if restart=="None":
+    restart = None
 basename = sys.argv[0].split('.py')[0]
 
 data_dir = "scratch/" + basename
@@ -97,16 +100,30 @@ if startup:
 else:
     bp.add_equation("dt(h) + D*(dx(u)+dy(v)) + b*h = 0")
 
-bp.add_equation("dt(u) + a*u - g*dx(h) = f*v")
-bp.add_equation("dt(v) + a*v - g*dy(h) = -f*u")
+<<<<<<< local
+bp.add_equation("dt(u) + a*u + g*dx(h) = f*v")
+bp.add_equation("dt(v) + a*v + g*dy(h) = -f*u")
 bp.add_bc("left(v) = 0")
 if not startup:
     bp.add_bc("right(v) = 0")
+=======
+bp.add_equation("dt(u) + a*u - g*dx(h) = f*v")
+bp.add_equation("dt(v) + a*v - g*dy(h) = -f*u")
+
+if cheb:
+    bp.add_bc("left(v) = 0")
+    if not startup:
+        bp.add_bc("right(v) = 0")
+>>>>>>> other
 
 # Build solver                                                                                                                               
 ts = de.timesteppers.RK443
 IVP = bp.build_solver(ts)
-IVP.stop_sim_time = 864000
+if restart is "None":
+    IVP.stop_sim_time = 864000
+else:
+    IVP.stop_sim_time = 3*864000
+
 IVP.stop_wall_time = np.inf
 IVP.stop_iteration = 10000000
 logger.info('Solver built')
@@ -115,15 +132,19 @@ dx = np.min(IVP.domain.grid_spacing(0))
 safety = 0.2
 dt = safety*dx/Co
 
-# Initial conditions                                                                                                                         
-x = domain.grid(0)
-y = domain.grid(1)
-h = IVP.state['h']
-u = IVP.state['u']
+if restart is None:
+    # Initial conditions                                                                                                                         
+    x = domain.grid(0)
+    y = domain.grid(1)
+    h = IVP.state['h']
+    u = IVP.state['u']
 
-# perturbations                      
-d = 500000.                                                                                                        
-h['g'] = 0.2 * np.exp(-((x-5000000.)**2 + y**2)/d**2)
+    # perturbations                      
+    d = 500000.                                                                                                        
+    h['g'] = 0.2 * np.exp(-((x-5000000.)**2 + y**2)/d**2)
+else:
+    logger.info("restarting from {}".format(restart))
+    IVP.load_state(restart,-1)
 
 if domain.distributor.rank == 0:
     if not os.path.exists('{:s}/'.format(data_dir)):

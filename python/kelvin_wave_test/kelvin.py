@@ -10,7 +10,7 @@ Can be run doubly periodic with sponge layer or Chebyshev in y with no
 sponge layer.
 
 Usage:
-    kelvin_wave.py [--Lx=<Lx> --Ly=<Ly> --nx=<nx> --ny=<ny> --chebyshev --zeta=<zeta> --gamma=<gamma>]
+    kelvin_wave.py [--Lx=<Lx> --Ly=<Ly> --nx=<nx> --ny=<ny> --chebyshev --zeta=<zeta> --gamma=<gamma> --dt=<dt>]
 
 Options:
     --Lx=<Lx>                                length in latitude [default: 4]
@@ -20,6 +20,7 @@ Options:
     --chebyshev                              Use chebyshev in y
     --zeta=<zeta>                            Control parameter for sponge layer [default: 0.9]
     --gamma=<gamma>                          damping for sponge layer [default: 1]
+    --dt=<dt>                                timestep in units of wave advection time [default: 0.01]
 
 """
 import sys
@@ -41,13 +42,15 @@ nx = int(args['--nx'])
 ny = int(args['--ny'])
 gamma = float(args['--gamma'])
 zeta = float(args['--zeta'])
-beta = 1.
+dt_frac = float(args['--dt'])
 cheb = args['--chebyshev']
+
+beta = 1.
 
 basename = sys.argv[0].split('.py')[0]
 
 data_dir = "scratch/" + basename
-data_dir += "_Lx{0:f}_Ly{1:f}_nx{2:d}_ny_{3:d}_gamma{4:5.02e}_zeta{5:5.02e}".format(Lx,Ly,nx,ny,gamma,zeta)
+data_dir += "_Lx{0:f}_Ly{1:f}_nx{2:d}_ny_{3:d}_gamma{4:5.02e}_zeta{5:5.02e}_dt{6:5.02e}".format(Lx,Ly,nx,ny,gamma,zeta,dt_frac)
 
 if cheb:
     data_dir += "_chebyshev"
@@ -100,7 +103,7 @@ else:
 
 # Build solver
 
-dt = 0.01*tau_advect
+dt = dt_frac*tau_advect
 
 ts = de.timesteppers.RK443
 IVP = bp.build_solver(ts)
