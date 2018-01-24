@@ -24,7 +24,7 @@ import numpy as np
 from mpi4py import MPI
 import time
 from dedalus.tools.config import config
-
+from dedalus.extras import flow_tools
 
 from docopt import docopt
 
@@ -131,6 +131,10 @@ IVP.stop_wall_time = np.inf
 IVP.stop_iteration = 10000000
 logger.info('Solver built')
 
+
+CFL = flow_tools.CFL(IVP, initial_dt=dt, cadence=10, safety=0.8, max_change=2.0)
+CFL.add_velocities(('u','v'))
+
 if domain.distributor.rank == 0:
     if not os.path.exists('{:s}/'.format(data_dir)):
         os.mkdir('{:s}/'.format(data_dir))
@@ -151,14 +155,19 @@ timeseries.add_task("vol_avg((u*u)/(u*u+v*v))",name='Ekin_x_ratio')
 
 analysis_tasks = [snapshots, slices, timeseries]
 
+flow = flow_tools.GlobalFlowProperty(IVP, cadence=10)
+flow.add_property("0.5*(u*u + v*v)", name="Ekin")
+flow.add_property("u", name="u")
+flow.add_property("v", name="v")
 # Main loop
 try:
     logger.info('Starting loop')
     start_time = time.time()
     while IVP.ok:
+        dt = CFL.compute_dt()
         dt = IVP.step(dt)
         if (IVP.iteration-1) % 10 == 0:
-            logger.info('Iteration: %i, Time: %e, dt: %e' %(IVP.iteration, IVP.sim_time, dt))
+            logger.info('Iteration: %i, Time: %e, dt: %e, Kinetic Energy: %e, u max: %e, v max: %e' %(IVP.iteration, IVP.sim_time, dt, flow.volume_average('Ekin'), flow.max('u'), flow.max('v')))
 except:
     logger.error('Exception raised, triggering end of main loop.')
     raise
