@@ -87,7 +87,7 @@ bp.parameters['G0'] = G0
 bp.parameters['n_modes'] = n_modes
 
 bp.substitutions['vol_avg(A)']   = 'integ(A)/(Lx*Ly)'
-bp.substitutions['J(A,B)'] = 'dx(A)*dy(B) - dx(B)*dx(A)'
+bp.substitutions['J(A,B)'] = 'dx(A)*dy(B) - dx(B)*dy(A)'
 bp.substitutions['Lap(A)'] = 'dx(dx(A)) + dy(dy(A))'
 bp.substitutions['u'] = 'dy(psi)'
 bp.substitutions['v'] = '-dx(psi)'
@@ -132,7 +132,7 @@ IVP.stop_iteration = 10000000
 logger.info('Solver built')
 
 
-CFL = flow_tools.CFL(IVP, initial_dt=dt, cadence=10, safety=0.8, max_change=2.0)
+CFL = flow_tools.CFL(IVP, initial_dt=dt, cadence=10, safety=0.8, max_change=2.0, max_dt=dt)
 CFL.add_velocities(('u','v'))
 
 if domain.distributor.rank == 0:
