@@ -86,11 +86,15 @@ bp.parameters['nu'] = nu
 bp.parameters['G0'] = G0
 bp.parameters['n_modes'] = n_modes
 
+
 bp.substitutions['vol_avg(A)']   = 'integ(A)/(Lx*Ly)'
-bp.substitutions['J(A,B)'] = 'dx(A)*dy(B) - dx(B)*dx(A)'
+bp.substitutions['J(A,B)'] = 'dx(A)*dy(B) - dx(B)*dy(A)'
 bp.substitutions['Lap(A)'] = 'dx(dx(A)) + dy(dy(A))'
 bp.substitutions['u'] = 'dy(psi)'
 bp.substitutions['v'] = '-dx(psi)'
+if mhd:
+    bp.substitutions['Bx'] = 'dy(A)'
+    bp.substitutions['By'] = '-dx(A)'
 
 def forcing(*args):
     x = args[0].data
@@ -126,15 +130,16 @@ bp.add_equation("psi = 0", condition='nx == 0 and ny == 0')
 dt = 0.01
 ts = de.timesteppers.RK443
 IVP = bp.build_solver(ts)
-IVP.stop_sim_time = 100.
+IVP.stop_sim_time = 200.
 IVP.stop_wall_time = np.inf
 IVP.stop_iteration = 10000000
 logger.info('Solver built')
 
 
-CFL = flow_tools.CFL(IVP, initial_dt=dt, cadence=10, safety=0.8, max_change=2.0)
+CFL = flow_tools.CFL(IVP, initial_dt=dt, cadence=10, safety=0.8, max_change=2.0, max_dt=dt)
 CFL.add_velocities(('u','v'))
-
+if mhd:
+    CFL.add_velocities(('Bx','By'))
 if domain.distributor.rank == 0:
     if not os.path.exists('{:s}/'.format(data_dir)):
         os.mkdir('{:s}/'.format(data_dir))
@@ -152,7 +157,10 @@ timeseries.add_task("vol_avg(sqrt(u*u))",name='urms')
 timeseries.add_task("vol_avg(sqrt(v*v))",name='vrms')
 timeseries.add_task("vol_avg(0.5*(u*u+v*v))",name='Ekin')
 timeseries.add_task("vol_avg((u*u)/(u*u+v*v))",name='Ekin_x_ratio')
-
+if mhd:
+    timeseries.add_task("vol_avg(0.5*(Bx*Bx+By*By))",name='Mag_en')
+    timeseries.add_task("vol_avg(sqrt(Bx*Bx))",name='Bx')
+    timeseries.add_task("vol_avg(sqrt(By*By))",name='By')
 analysis_tasks = [snapshots, slices, timeseries]
 
 flow = flow_tools.GlobalFlowProperty(IVP, cadence=10)
